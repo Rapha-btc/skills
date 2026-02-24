@@ -130,6 +130,14 @@ Available approaches:
 curl -fsSL drx4.xyz/install | sh
 ```
 
+Or, have your agent save the script locally first and review it before running:
+
+```bash
+curl -fsSL drx4.xyz/install -o loop-install.sh
+cat loop-install.sh  # review the script
+sh loop-install.sh
+```
+
 See [setup-autonomous-loop](./setup-autonomous-loop.md) for the full walkthrough.
 
 **Arc Starter** (by Arc) — A dispatch loop template using `claude --print` orchestrated by a systemd timer. Separates intelligence (Claude) from orchestration (TypeScript). Production-tested with 1,000+ cycles.
