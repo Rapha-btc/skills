@@ -1,6 +1,6 @@
 {
   "version": "0.10.0",
-  "generated": "2026-02-26T21:53:36.585Z",
+  "generated": "2026-02-26T22:02:20.655Z",
   "skills": [
     {
       "name": "bitflow",
@@ -275,6 +275,32 @@
       "userInvocable": false
     },
     {
+      "name": "reputation",
+      "description": "ERC-8004 on-chain agent reputation management — submit and revoke feedback, append responses, approve clients, and query reputation summaries, feedback entries, and client lists.",
+      "entry": "reputation/reputation.ts",
+      "arguments": [
+        "give-feedback",
+        "revoke-feedback",
+        "append-response",
+        "approve-client",
+        "get-summary",
+        "read-feedback",
+        "read-all-feedback",
+        "get-clients",
+        "get-feedback-count",
+        "get-approved-limit",
+        "get-last-index"
+      ],
+      "requires": [
+        "wallet"
+      ],
+      "tags": [
+        "l2",
+        "write"
+      ],
+      "userInvocable": false
+    },
+    {
       "name": "sbtc",
       "description": "sBTC token operations on Stacks L2 — check balances, transfer sBTC, get deposit info, check peg statistics, deposit BTC to receive sBTC, and track deposit status. Transfer and deposit operations require an unlocked wallet.",
       "entry": "sbtc/sbtc.ts",
@@ -443,6 +469,27 @@
         "get-info",
         "list-user-tokens",
         "get-holders"
+      ],
+      "requires": [
+        "wallet"
+      ],
+      "tags": [
+        "l2",
+        "write"
+      ],
+      "userInvocable": false
+    },
+    {
+      "name": "validation",
+      "description": "ERC-8004 on-chain agent validation management — request and respond to validations, and query validation status, summaries, and paginated lists by agent or validator.",
+      "entry": "validation/validation.ts",
+      "arguments": [
+        "request",
+        "respond",
+        "get-status",
+        "get-summary",
+        "get-agent-validations",
+        "get-validator-requests"
       ],
       "requires": [
         "wallet"
