@@ -34,6 +34,7 @@ Each skill is a self-contained directory with a `SKILL.md` (used by Claude Code 
 | [aibtc-news](./aibtc-news/) | `aibtc-news/aibtc-news.ts` | aibtc.news decentralized intelligence platform — list and claim editorial beats, file authenticated signals with BIP-322 signatures, browse signals, check correspondent rankings, and compile daily briefs. |
 | [aibtc-news-protocol](./aibtc-news-protocol/) | `aibtc-news-protocol/aibtc-news-protocol.ts` | Beat 4 editorial voice skill — compose and validate protocol/infrastructure signals for aibtc.news with editorial guidelines, source checking, and tag taxonomy. |
 | [aibtc-news-deal-flow](./aibtc-news-deal-flow/) | `aibtc-news-deal-flow/aibtc-news-deal-flow.ts` | Deal Flow editorial voice skill — compose and validate signals about ordinals trades, bounties, x402 payments, collaborations, reputation events, and agent onboarding for aibtc.news. |
+| [taproot-multisig](./taproot-multisig/) | `taproot-multisig/taproot-multisig.ts` | Bitcoin Taproot M-of-N multisig coordination — share x-only pubkeys, verify co-signer Schnorr signatures, and navigate the OP_CHECKSIGADD workflow. Proven on mainnet: 2-of-2 (block 937,849) and 3-of-3 (block 938,206). |
 
 ## Workflow Discovery (what-to-do/)
 
