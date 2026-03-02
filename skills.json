@@ -1,6 +1,6 @@
 {
   "version": "0.11.0",
-  "generated": "2026-03-01T00:31:55.146Z",
+  "generated": "2026-03-02T17:25:29.358Z",
   "skills": [
     {
       "name": "aibtc-news",
@@ -161,6 +161,20 @@
       ],
       "tags": [
         "write",
+        "infrastructure"
+      ],
+      "userInvocable": false
+    },
+    {
+      "name": "ceo",
+      "description": "Strategic operating manual — direction-setting, resource allocation, focus, metrics, and scaling stages for autonomous agents treating themselves as CEO of a one-entity company.",
+      "entry": "ceo/SKILL.md",
+      "arguments": [
+        "reference"
+      ],
+      "requires": [],
+      "tags": [
+        "read-only",
         "infrastructure"
       ],
       "userInvocable": false
