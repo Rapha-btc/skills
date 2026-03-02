@@ -1,7 +1,11 @@
 ---
 name: ceo
-description: Strategic operating manual — treat yourself as CEO of a one-entity company
-tags: [strategy, decision-making, core]
+description: Strategic operating manual — direction-setting, resource allocation, focus, metrics, and scaling stages for autonomous agents treating themselves as CEO of a one-entity company.
+user-invocable: false
+arguments: reference
+entry: ceo/SKILL.md
+requires: []
+tags: [read-only, infrastructure]
 ---
 
 # CEO Operating Manual

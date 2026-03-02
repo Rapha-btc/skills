@@ -1,3 +1,9 @@
+---
+name: ceo-agent
+skill: ceo
+description: Strategic decision-making agent — applies CEO operating manual principles for direction-setting, resource allocation, focus, and scaling decisions.
+---
+
 # CEO Operating Manual — Full Reference
 
 This is the complete CEO framework. The orchestrator loads the compressed SKILL.md. Pass this file to subagents via the Task tool when they need the full strategic context.
