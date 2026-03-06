@@ -314,11 +314,8 @@ program
         // Check if already running
         const existingPid = await readPid();
         if (existingPid && isProcessRunning(existingPid)) {
-          printJson({
-            success: false,
-            error: `Yield hunter is already running (PID: ${existingPid}). Use stop to stop it first.`,
-          });
-          process.exit(1);
+          handleError(new Error(`Yield hunter is already running (PID: ${existingPid}). Use stop to stop it first.`));
+          return;
         }
 
         // Verify wallet is unlocked
@@ -421,11 +418,8 @@ program
       const pid = await readPid();
 
       if (!pid) {
-        printJson({
-          success: false,
-          error: "No yield hunter PID file found. The daemon may not be running.",
-        });
-        process.exit(1);
+        handleError(new Error("No yield hunter PID file found. The daemon may not be running."));
+        return;
       }
 
       if (!isProcessRunning(pid)) {
@@ -435,11 +429,8 @@ program
         state.running = false;
         state.pid = null;
         await writeState(state);
-        printJson({
-          success: false,
-          error: `Process ${pid} is not running (stale PID file cleaned up).`,
-        });
-        process.exit(1);
+        handleError(new Error(`Process ${pid} is not running (stale PID file cleaned up).`));
+        return;
       }
 
       process.kill(pid, "SIGTERM");
