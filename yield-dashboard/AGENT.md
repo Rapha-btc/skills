@@ -37,7 +37,7 @@ This agent provides a unified read-only view of DeFi positions across all major 
 
 | Error message | Cause | Fix |
 |--------------|-------|-----|
-| `{ "error": "yield-dashboard is mainnet-only" }` | NETWORK is not mainnet | Run with `NETWORK=mainnet bun run yield-dashboard/yield-dashboard.ts ...` |
+| `"yield-dashboard is mainnet-only. Set NETWORK=mainnet to use this skill."` | NETWORK is not mainnet | Run with `NETWORK=mainnet bun run yield-dashboard/yield-dashboard.ts ...` |
 | "Wallet is locked. Run: bun run wallet/wallet.ts unlock" | Wallet not unlocked for address-dependent commands | Run `bun run wallet/wallet.ts unlock --password <password>` first, or use `apy-breakdown` which needs no wallet |
 | `"error": "API 4xx for <function>"` | Hiro API or contract call failed | Retry; may be a transient API issue |
 | Bitflow position shows `apyPct: 2.8` with `apySource: "fallback estimate"` | Bitflow public API unavailable | Not an error; fallback APY is used automatically |
