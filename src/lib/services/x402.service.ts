@@ -331,9 +331,15 @@ export type ProbeResult = ProbeResultFree | ProbeResultPaymentRequired;
  */
 export function detectTokenType(asset: string): 'STX' | 'sBTC' {
   const assetLower = asset.trim().toLowerCase();
-  // Treat as sBTC only if the asset is exactly "sbtc" (token name)
-  // or a full contract identifier ending with "::token-sbtc"
-  if (assetLower === 'sbtc' || assetLower.endsWith('::token-sbtc')) {
+  // Treat as sBTC if the asset is:
+  // - exactly "sbtc" (short token name)
+  // - a full FT identifier ending with "::sbtc-token"
+  // - a contract identifier ending with ".sbtc-token" (no FT suffix)
+  if (
+    assetLower === 'sbtc' ||
+    assetLower.endsWith('::sbtc-token') ||
+    assetLower.endsWith('.sbtc-token')
+  ) {
     return 'sBTC';
   }
   return 'STX';
