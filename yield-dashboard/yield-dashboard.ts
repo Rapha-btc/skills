@@ -318,7 +318,6 @@ async function readStackingPosition(
   };
 
   try {
-
     const principalArg =
       "0x" +
       Buffer.from(serializeCV(standardPrincipalCV(walletAddress))).toString(
@@ -411,8 +410,8 @@ program
   .action(async () => {
     try {
       if (NETWORK !== "mainnet") {
-        printJson({ error: "yield-dashboard is mainnet-only" });
-        process.exit(1);
+        handleError(new Error("yield-dashboard is mainnet-only. Set NETWORK=mainnet to use this skill."));
+        return;
       }
 
       const walletAddress = await getWalletAddress();
@@ -490,8 +489,8 @@ program
   .action(async () => {
     try {
       if (NETWORK !== "mainnet") {
-        printJson({ error: "yield-dashboard is mainnet-only" });
-        process.exit(1);
+        handleError(new Error("yield-dashboard is mainnet-only. Set NETWORK=mainnet to use this skill."));
+        return;
       }
 
       const walletAddress = await getWalletAddress();
@@ -581,8 +580,8 @@ program
   .action(async (opts: { riskTolerance: string }) => {
     try {
       if (NETWORK !== "mainnet") {
-        printJson({ error: "yield-dashboard is mainnet-only" });
-        process.exit(1);
+        handleError(new Error("yield-dashboard is mainnet-only. Set NETWORK=mainnet to use this skill."));
+        return;
       }
 
       const walletAddress = await getWalletAddress();
