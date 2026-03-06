@@ -11,8 +11,8 @@
  *   → creates my-skill/SKILL.md, my-skill/AGENT.md, my-skill/my-skill.ts
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { join, resolve } from "path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -25,10 +25,6 @@ function kebabToTitle(kebab: string): string {
     .join(" ");
 }
 
-function kebabToCamel(kebab: string): string {
-  return kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-}
-
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -38,16 +34,23 @@ function skillMd(name: string): string {
   return `---
 name: ${name}
 description: TODO — one-line description of what ${title} does
+author: TODO — your GitHub username
+author_agent: TODO — your agent name (or remove this line)
 user-invocable: false
 arguments: TODO — list subcommands separated by |
 entry: ${name}/${name}.ts
-requires: [wallet]
-tags: [l2]
+requires: []
+tags: []
 ---
 
 # ${title}
 
 TODO — describe what this skill does and when an agent should use it.
+
+> **Before committing:** Update the \`requires\` and \`tags\` fields in the
+> frontmatter above. Common values — requires: \`[wallet]\`; tags: \`l1\`,
+> \`l2\`, \`read-only\`, \`write\`, \`requires-funds\`, \`sensitive\`,
+> \`defi\`, \`infrastructure\`, \`mainnet-only\`.
 
 ## Usage
 
@@ -114,7 +117,6 @@ bun run ${name}/${name}.ts example --flag value
 
 function entryTs(name: string): string {
   const title = kebabToTitle(name);
-  const programName = kebabToCamel(name);
   return `#!/usr/bin/env bun
 /**
  * ${title} skill CLI
@@ -190,7 +192,7 @@ writeFileSync(join(skillDir, "SKILL.md"), skillMd(name));
 writeFileSync(join(skillDir, "AGENT.md"), agentMd(name));
 writeFileSync(join(skillDir, `${name}.ts`), entryTs(name));
 
-console.log(`\n  ✔ Scaffolded skill: ${name}/`);
+console.log(`\n  Scaffolded skill: ${name}/`);
 console.log(`    ${name}/SKILL.md   — fill in frontmatter + docs`);
 console.log(`    ${name}/AGENT.md   — fill in agent delegation rules`);
 console.log(`    ${name}/${name}.ts — implement subcommands\n`);
