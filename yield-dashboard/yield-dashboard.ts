@@ -249,7 +249,7 @@ async function readAlexPosition(
     pos.details.error = String(e);
   }
 
-  // TODO: Read user LP token balance for actual position value
+  // LP token balance reading requires on-chain query for actual position value
   return pos;
 }
 
@@ -300,7 +300,7 @@ async function readBitflowPosition(
     pos.details.apySource = "fallback estimate (API unavailable)";
   }
 
-  // TODO: Read user Bitflow LP position
+  // Bitflow LP position reading requires on-chain query (position tracking not yet implemented)
   return pos;
 }
 
