@@ -12,6 +12,7 @@ import { getAccount, getWalletAddress } from "../src/lib/services/x402.service.j
 import { getWalletManager } from "../src/lib/services/wallet-manager.js";
 import {
   getBitflowService,
+  type BitflowToken,
   type HodlmmActiveBinToleranceInput,
   type HodlmmRelativeLiquidityBinInput,
   type HodlmmRelativeWithdrawalInput,
@@ -157,6 +158,152 @@ async function getWriteAccount(walletPassword?: string) {
   return getAccount();
 }
 
+function formatScaledInteger(value: string | number, scale: number): string {
+  const negative = String(value).startsWith("-");
+  const digits = String(value).replace("-", "").replace(/^0+/, "") || "0";
+  const padded = digits.padStart(scale + 1, "0");
+  const whole = padded.slice(0, padded.length - scale);
+  const fraction = padded.slice(padded.length - scale).replace(/0+$/, "");
+  const result = fraction ? `${whole}.${fraction}` : whole;
+  return negative ? `-${result}` : result;
+}
+
+function invertDecimalString(value: string, decimals: number = 8): string | null {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num === 0) return null;
+  return (1 / num).toFixed(decimals).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function createTokenSymbolLookup(tokens: BitflowToken[]) {
+  const lookup = new Map<string, string>();
+  for (const token of tokens) {
+    lookup.set(token.id, token.symbol);
+    lookup.set(token.contractId, token.symbol);
+  }
+  lookup.set("Stacks", "STX");
+  return lookup;
+}
+
+function resolveTokenLabel(tokenId: string, lookup: Map<string, string>): string {
+  return lookup.get(tokenId) || tokenId;
+}
+
+function matchesTickerSelector(
+  selector: string | undefined,
+  rawValue: string,
+  symbol: string
+): boolean {
+  if (!selector) return true;
+  const normalizedSelector = selector.toLowerCase();
+  const selectorAliases = new Set([normalizedSelector]);
+  if (normalizedSelector.startsWith("token-")) {
+    selectorAliases.add(normalizedSelector.replace(/^token-/, ""));
+  }
+  if (normalizedSelector === "token-stx") {
+    selectorAliases.add("stacks");
+    selectorAliases.add("stx");
+  }
+
+  return (
+    Array.from(selectorAliases).some(
+      (candidate) =>
+        rawValue.toLowerCase() === candidate ||
+        symbol.toLowerCase() === candidate ||
+        rawValue.toLowerCase().includes(candidate)
+    )
+  );
+}
+
+function summarizeTickerEntry(
+  ticker: Record<string, string>,
+  symbolLookup: Map<string, string>
+) {
+  const baseSymbol = resolveTokenLabel(ticker.base_currency, symbolLookup);
+  const targetSymbol = resolveTokenLabel(ticker.target_currency, symbolLookup);
+  return {
+    pair: `${baseSymbol}/${targetSymbol}`,
+    baseSymbol,
+    targetSymbol,
+    lastPrice: ticker.last_price,
+    bid: ticker.bid,
+    ask: ticker.ask,
+    high: ticker.high,
+    low: ticker.low,
+    baseVolume: ticker.base_volume,
+    targetVolume: ticker.target_volume,
+    liquidityUsd: ticker.liquidity_in_usd,
+  };
+}
+
+function summarizeHodlmmPool(pool: {
+  pool_id: string;
+  token_x: string;
+  token_y: string;
+  token_x_symbol?: string | null;
+  token_y_symbol?: string | null;
+  pool_name?: string | null;
+  bin_step: number;
+  active_bin: number;
+  pool_token?: string | null;
+  suggested?: boolean | null;
+  sbtc_incentives?: boolean | null;
+}) {
+  const tokenXSymbol = pool.token_x_symbol || pool.token_x;
+  const tokenYSymbol = pool.token_y_symbol || pool.token_y;
+  return {
+    poolId: pool.pool_id,
+    pair: `${tokenXSymbol}/${tokenYSymbol}`,
+    tokenXSymbol,
+    tokenYSymbol,
+    binStepBps: pool.bin_step,
+    activeBinId: pool.active_bin,
+    poolContract: pool.pool_token,
+    suggested: pool.suggested,
+    sbtcIncentives: pool.sbtc_incentives,
+  };
+}
+
+function summarizeHodlmmBin(
+  bin: {
+    bin_id: number;
+    reserve_x: string;
+    reserve_y: string;
+    price?: string | null;
+    liquidity?: string | null;
+  },
+  pool: {
+    token_x_symbol?: string | null;
+    token_y_symbol?: string | null;
+    token_x_decimals?: number | null;
+    token_y_decimals?: number | null;
+  }
+) {
+  const tokenXSymbol = pool.token_x_symbol || "tokenX";
+  const tokenYSymbol = pool.token_y_symbol || "tokenY";
+  const tokenXDecimals = pool.token_x_decimals ?? 6;
+  const tokenYDecimals = pool.token_y_decimals ?? 6;
+  const rawPrice = bin.price || "0";
+  const quotePerBase = formatScaledInteger(rawPrice, tokenYDecimals + 2);
+  const basePerQuote = invertDecimalString(quotePerBase);
+
+  return {
+    binId: bin.bin_id,
+    reserveX: formatScaledInteger(bin.reserve_x, tokenXDecimals),
+    reserveY: formatScaledInteger(bin.reserve_y, tokenYDecimals),
+    reserveXSymbol: tokenXSymbol,
+    reserveYSymbol: tokenYSymbol,
+    rawPrice,
+    approxPrice: {
+      quotePerBase,
+      quotePerBasePair: `${tokenYSymbol} per ${tokenXSymbol}`,
+      basePerQuote,
+      basePerQuotePair: `${tokenXSymbol} per ${tokenYSymbol}`,
+      note: `bin.price is raw atomic price. Approx ${tokenYSymbol}/${tokenXSymbol} = rawPrice / 10^(${tokenYDecimals} + 2)`,
+    },
+    rawLiquidity: bin.liquidity || "0",
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Program
 // ---------------------------------------------------------------------------
@@ -198,13 +345,23 @@ program
         }
 
         const bitflowService = getBitflowService(NETWORK);
+        const symbolLookup = createTokenSymbolLookup(await bitflowService.getAvailableTokens());
 
-        if (opts.baseCurrency && opts.targetCurrency) {
-          const ticker = await bitflowService.getTickerByPair(
-            opts.baseCurrency,
-            opts.targetCurrency
-          );
-          if (!ticker) {
+        const tickers = await bitflowService.getTicker();
+
+        if (opts.baseCurrency || opts.targetCurrency) {
+          const filtered = tickers
+            .filter((ticker) => {
+              const baseSymbol = resolveTokenLabel(String(ticker.base_currency), symbolLookup);
+              const targetSymbol = resolveTokenLabel(String(ticker.target_currency), symbolLookup);
+              return (
+                matchesTickerSelector(opts.baseCurrency, String(ticker.base_currency), baseSymbol) &&
+                matchesTickerSelector(opts.targetCurrency, String(ticker.target_currency), targetSymbol)
+              );
+            })
+            .map((ticker) => summarizeTickerEntry(ticker as Record<string, string>, symbolLookup));
+
+          if (filtered.length === 0) {
             printJson({
               error: "Trading pair not found",
               baseCurrency: opts.baseCurrency,
@@ -212,15 +369,23 @@ program
             });
             return;
           }
-          printJson({ network: NETWORK, ticker });
+
+          printJson({
+            network: NETWORK,
+            pairCount: filtered.length,
+            tickers: filtered,
+          });
           return;
         }
 
-        const tickers = await bitflowService.getTicker();
+        const summarizedTickers = tickers.map((ticker) =>
+          summarizeTickerEntry(ticker as Record<string, string>, symbolLookup)
+        );
+
         printJson({
           network: NETWORK,
           pairCount: tickers.length,
-          tickers: tickers.slice(0, 50),
+          tickers: summarizedTickers.slice(0, 50),
           note:
             tickers.length > 50
               ? `Showing 50 of ${tickers.length} pairs`
@@ -292,7 +457,7 @@ program
         printJson({
           network: NETWORK,
           poolCount: pools.length,
-          pools,
+          pools: pools.map(summarizeHodlmmPool),
         });
       } catch (error) {
         handleError(error);
@@ -319,11 +484,32 @@ program
       }
 
       const bitflowService = getBitflowService(NETWORK);
-      const bins = await bitflowService.getHodlmmPoolBins(opts.poolId, opts.allowFallback);
+      const [bins, pool] = await Promise.all([
+        bitflowService.getHodlmmPoolBins(opts.poolId, opts.allowFallback),
+        bitflowService.getHodlmmPool(opts.poolId, opts.allowFallback),
+      ]);
 
       printJson({
         network: NETWORK,
-        bins,
+        pool: summarizeHodlmmPool(pool),
+        units: {
+          reserveX: `${pool.token_x_symbol || "tokenX"} in atomic base units on-chain, shown here in human units`,
+          reserveY: `${pool.token_y_symbol || "tokenY"} in atomic base units on-chain, shown here in human units`,
+          rawPrice: `Raw HODLMM bin price from API`,
+          approxPrice: `${pool.token_y_symbol || "tokenY"} per ${pool.token_x_symbol || "tokenX"} derived from rawPrice / 10^(${pool.token_y_decimals ?? 6} + 2)`,
+        },
+        activeBinId: bins.active_bin_id,
+        activeBin: bins.bins
+          .filter((bin) => bin.bin_id === bins.active_bin_id)
+          .map((bin) => summarizeHodlmmBin(bin, pool))[0],
+        nearbyBins: bins.bins
+          .filter((bin) =>
+            bins.active_bin_id === undefined || bins.active_bin_id === null
+              ? bin.bin_id < 7
+              : Math.abs(bin.bin_id - bins.active_bin_id) <= 3
+          )
+          .map((bin) => summarizeHodlmmBin(bin, pool)),
+        totalBinCount: bins.total_bins,
       });
     } catch (error) {
       handleError(error);
@@ -358,16 +544,40 @@ program
 
         const bitflowService = getBitflowService(NETWORK);
         const address = opts.address || (await getWalletAddress());
-        const positions = await bitflowService.getHodlmmUserPositionBins(address, opts.poolId, {
-          fresh: opts.fresh,
-          allowFallback: opts.allowFallback,
-        });
+        const [positions, pool] = await Promise.all([
+          bitflowService.getHodlmmUserPositionBins(address, opts.poolId, {
+            fresh: opts.fresh,
+            allowFallback: opts.allowFallback,
+          }),
+          bitflowService.getHodlmmPool(opts.poolId, opts.allowFallback),
+        ]);
 
         printJson({
           network: NETWORK,
           address,
           poolId: opts.poolId,
-          positions,
+          pool: summarizeHodlmmPool(pool),
+          positions: positions.bins.map((bin) => {
+            const summary = summarizeHodlmmBin(
+              {
+                bin_id: bin.bin_id,
+                reserve_x: String(bin.reserve_x ?? "0"),
+                reserve_y: String(bin.reserve_y ?? "0"),
+                price: String(bin.price ?? "0"),
+                liquidity: String(bin.liquidity ?? "0"),
+              },
+              pool
+            );
+
+            return {
+              binId: bin.bin_id,
+              userLiquidity: String(bin.user_liquidity ?? "0"),
+              price: summary.approxPrice,
+              reserveX: summary.reserveX,
+              reserveY: summary.reserveY,
+              raw: bin,
+            };
+          }),
         });
       } catch (error) {
         handleError(error);

@@ -162,6 +162,10 @@ export interface HodlmmPoolInfo {
   amm_type: string;
   token_x: string;
   token_y: string;
+  token_x_symbol?: string | null;
+  token_y_symbol?: string | null;
+  token_x_decimals?: number | null;
+  token_y_decimals?: number | null;
   bin_step: number;
   active_bin: number;
   active: boolean;
@@ -459,6 +463,10 @@ export class BitflowService {
         amm_type: "dlmm",
         token_x: data?.tokens?.tokenX?.contract,
         token_y: data?.tokens?.tokenY?.contract,
+        token_x_symbol: data?.tokens?.tokenX?.symbol || null,
+        token_y_symbol: data?.tokens?.tokenY?.symbol || null,
+        token_x_decimals: Number(data?.tokens?.tokenX?.decimals ?? 0),
+        token_y_decimals: Number(data?.tokens?.tokenY?.decimals ?? 0),
         bin_step: Number(data.binStep || 0),
         active_bin: Number(data.activeBin || 0),
         active: Boolean(data.poolStatus),

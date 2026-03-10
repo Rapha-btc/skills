@@ -16,6 +16,16 @@ This agent handles DEX operations on the Bitflow aggregated liquidity protocol o
 - For `create-order`: must first have a Keeper contract via `get-keeper-contract`
 - For `swap`: run `get-quote` first to check price impact; swaps with >5% impact require `--confirm-high-impact`
 
+## Units Reference
+
+- `STX`: 6 decimals (`1 STX = 1,000,000` micro-STX)
+- `sBTC`: 8 decimals (`1 sBTC = 100,000,000` sats)
+- `USDCx` / `aeUSDC`: 6 decimals
+- `get-quote`, `get-routes --amount-in`, and `swap --amount-in` use human-readable token amounts
+- HODLMM bin reserves are raw on-chain atomic values; the CLI now shows human-readable token units too
+- HODLMM `bin.price` is a raw API field; interpret the derived `approxPrice` output instead of guessing from `rawPrice`
+- Do not infer USD from pool data alone; use an external BTC/USD or token/USD reference when the user asks for dollar values
+
 ## Decision Logic
 
 | Goal | Subcommand |
@@ -42,6 +52,7 @@ This agent handles DEX operations on the Bitflow aggregated liquidity protocol o
 - Swaps with >5% price impact are blocked without `--confirm-high-impact` flag
 - Set `--slippage-tolerance` to match risk tolerance (default 0.01 = 1%)
 - For HODLMM liquidity adds, use `get-hodlmm-bins` first and ensure the token side matches the bin's position relative to the active bin
+- For one-sided `STX` adds, use positive `activeBinOffset`; for one-sided quote-token adds, use negative `activeBinOffset`
 - For HODLMM withdrawals, calculate offsets from the current active bin, not the original add offset
 - For `create-order`: verify `fundingTokens` amounts are in smallest units matching token decimals
 - For `cancel-order`: cancellation only works on pending orders; already-executed orders cannot be reversed
@@ -62,6 +73,8 @@ This agent handles DEX operations on the Bitflow aggregated liquidity protocol o
 - `get-quote`: `selectedRoute` is the best overall quote; `bestExecutableRoute` is the route `swap` can use today
 - `get-quote`: `executionWarning` means the best HODLMM quote is not directly executable, so `swap` will use the best executable fallback
 - `get-quote`: if `highImpactWarning` is present, the trade is large relative to pool liquidity
+- `get-hodlmm-bins`: prefer `approxPrice` over `rawPrice` when answering users in natural language
+- `get-ticker`: prefer the derived `pair`, `baseSymbol`, and `targetSymbol` fields over raw contract IDs
 - `swap`: `quotedBestRoute` vs `executedRoute` shows whether execution matched the top quote or fell back to another executable route
 - `get-keeper-contract`: `contractIdentifier` is needed for `create-order --contract-identifier`
 - `get-order`: check `order.status` — values are `pending`, `executing`, `completed`, or `cancelled`

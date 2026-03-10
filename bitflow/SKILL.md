@@ -31,6 +31,16 @@ Write operations (`swap`, `add-liquidity-simple`, `withdraw-liquidity-simple`, `
 bun run bitflow/bitflow.ts <subcommand> [options]
 ```
 
+## Units Reference
+
+- `STX` uses 6 decimals: `1 STX = 1,000,000` micro-STX
+- `sBTC` uses 8 decimals: `1 sBTC = 100,000,000` sats
+- `USDCx` and `aeUSDC` use 6 decimals
+- `get-quote`, `get-routes --amount-in`, and `swap --amount-in` use human-readable token amounts
+- HODLMM `reserve_x` and `reserve_y` come from on-chain atomic units; this skill displays them in human-readable token units
+- HODLMM `bin.price` is a raw API value; this skill also shows an approximate human-readable `tokenY per tokenX` interpretation
+- For USD reasoning, use an external BTC/USD or token/USD source; pool/bin outputs are pool-native prices, not a universal USD oracle
+
 ## Subcommands
 
 ### get-ticker
@@ -129,6 +139,11 @@ Fetch all bins for a HODLMM pool, including reserves, liquidity, and the active 
 ```
 bun run bitflow/bitflow.ts get-hodlmm-bins --pool-id <poolId> [--allow-fallback]
 ```
+
+Output notes:
+- `activeBin` is the best single bin to read first
+- `nearbyBins` shows a compact window around the active bin for easier agent interpretation
+- Prefer `approxPrice` over `rawPrice` in natural-language answers
 
 ### get-hodlmm-position-bins
 
@@ -291,6 +306,8 @@ bun run bitflow/bitflow.ts add-liquidity-simple \
 
 Notes:
 - Use `get-hodlmm-bins` first so you know where the active bin is.
+- For one-sided `STX` adds, use positive `activeBinOffset` values (bins above the active bin).
+- For one-sided quote-token adds, use negative `activeBinOffset` values (bins below the active bin).
 - Bins below the active bin should usually get only `yAmount`.
 - Bins above the active bin should usually get only `xAmount`.
 - The active bin can receive one or both token amounts.
