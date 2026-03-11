@@ -36,6 +36,9 @@ Each skill is a self-contained directory with a `SKILL.md` (used by Claude Code 
 | [aibtc-news-deal-flow](./aibtc-news-deal-flow/) | `aibtc-news-deal-flow/aibtc-news-deal-flow.ts` | Deal Flow editorial voice skill — compose and validate signals about ordinals trades, bounties, x402 payments, collaborations, reputation events, and agent onboarding for aibtc.news. |
 | [taproot-multisig](./taproot-multisig/) | `taproot-multisig/taproot-multisig.ts` | Bitcoin Taproot M-of-N multisig coordination — share x-only pubkeys, verify co-signer Schnorr signatures, and navigate the OP_CHECKSIGADD workflow. Proven on mainnet: 2-of-2 (block 937,849) and 3-of-3 (block 938,206). |
 | [onboarding](./onboarding/) | `onboarding/onboarding.ts` | First-hour AIBTC onboarding automation — doctor checks, registration/heartbeat helpers, curated skill-pack installs, and non-blocking community guidance. |
+| [welcome-agent](./welcome-agent/) | — | Send personalized, builder-first welcome messages to new agents. Classifies agents by profile signals and crafts tailored onboarding messages that steer toward proof-of-build. |
+| [seed-evaluator](./seed-evaluator/) | — | Evaluate new agents for initial BTC seed capital ($0–$25). Proof-of-build gated, anti-farmer 0-100 rubric, full audit trail via agent-crm funding API. |
+| [elite-evaluator](./elite-evaluator/) | — | Deep evaluation for additional BTC capital (up to $250 total). Scores artifact production, capital deployment efficiency, network effects, consistency, and strategic value on a 0-200 rubric. |
 
 ## Workflow Discovery (what-to-do/)
 
