@@ -7,6 +7,53 @@ import { z } from "zod";
 const scriptsDir = dirname(import.meta.path);
 const repoRoot = dirname(scriptsDir);
 
+// CLI flags
+const skipSpec = process.argv.includes("--skip-spec");
+
+// Find the skills-ref binary: prefer local venv, fall back to PATH
+async function findSkillsRef(): Promise<string | null> {
+  const localBin = join(repoRoot, ".venv-skills-ref/bin/skills-ref");
+  try {
+    const stat = await Bun.file(localBin).stat();
+    if (stat.size > 0) return localBin;
+  } catch {
+    // not found locally
+  }
+  // Fall back to PATH
+  try {
+    const proc = Bun.spawn(["which", "skills-ref"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await proc.exited;
+    if (proc.exitCode === 0) return "skills-ref";
+  } catch {
+    // not on PATH
+  }
+  return null;
+}
+
+// Run `skills-ref validate <skillDir>/` and return result
+async function runSkillsRef(
+  bin: string,
+  skillDir: string
+): Promise<{ passed: boolean; output: string }> {
+  try {
+    const proc = Bun.spawn([bin, "validate", skillDir + "/"], {
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await proc.exited;
+    const stdout = await new Response(proc.stdout).text();
+    const stderr = await new Response(proc.stderr).text();
+    const output = (stdout + stderr).trim();
+    return { passed: proc.exitCode === 0, output };
+  } catch (err) {
+    return { passed: false, output: String(err) };
+  }
+}
+
 // Controlled vocabulary for SKILL.md tags
 const VALID_TAGS = [
   "read-only",
@@ -100,6 +147,24 @@ interface FileResult {
 
 const results: FileResult[] = [];
 
+// Locate skills-ref binary for tier-1 validation
+let skillsRefBin: string | null = null;
+if (!skipSpec) {
+  skillsRefBin = await findSkillsRef();
+  if (skillsRefBin === null) {
+    process.stderr.write(
+      "WARNING: skills-ref not found. Skipping tier-1 spec validation. Install with: pip install skills-ref\n"
+    );
+  }
+}
+
+// Print active tiers
+const tier1Active = !skipSpec && skillsRefBin !== null;
+console.log(
+  `Validation tiers: ${tier1Active ? "[tier-1: skills-ref]" : "[tier-1: SKIPPED]"} [tier-2: Zod]`
+);
+console.log("");
+
 // First pass: collect all skill names for referential integrity
 const knownSkills = new Set<string>();
 const skillGlob = new Glob("*/SKILL.md");
@@ -113,6 +178,15 @@ for await (const file of skillGlob2.scan({ cwd: repoRoot })) {
   const filePath = join(repoRoot, file);
   const content = await Bun.file(filePath).text();
   const errors: string[] = [];
+  const skillDir = file.split("/")[0];
+
+  // Tier-1: skills-ref spec compliance
+  if (tier1Active && skillsRefBin !== null) {
+    const specResult = await runSkillsRef(skillsRefBin, skillDir);
+    if (!specResult.passed) {
+      errors.push(`[spec] ${specResult.output}`);
+    }
+  }
 
   // Parse YAML frontmatter
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n?/);
