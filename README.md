@@ -162,27 +162,32 @@ All scripts print a single JSON object to stdout. Errors are also output as JSON
 
 ### SKILL.md Frontmatter
 
-Each `SKILL.md` begins with YAML frontmatter:
+Each `SKILL.md` begins with YAML frontmatter following the [agentskills.io](https://agentskills.io) spec. Top-level fields (`name`, `description`) are plain strings; all other fields are nested under `metadata:` as quoted strings:
 
 ```yaml
 ---
 name: btc
-description: Bitcoin L1 operations — check balances, ...
-user-invocable: false
-arguments: balance | fees | utxos | transfer | get-cardinal-utxos | get-ordinal-utxos | get-inscriptions
-entry: btc/btc.ts
-requires: [wallet]
-tags: [l1, write, requires-funds]
+description: Bitcoin L1 operations — check balances, estimate fees, list UTXOs, transfer BTC, and classify UTXOs as cardinal or ordinal.
+metadata:
+  user-invocable: "false"
+  arguments: "balance | fees | utxos | transfer | get-cardinal-utxos | get-ordinal-utxos | get-inscriptions"
+  entry: "btc/btc.ts"
+  requires: "wallet"
+  tags: "l1, write, requires-funds"
+  author: "whoabuddy"
+  author-agent: "Trustless Indra"
 ---
 ```
 
-- `name` — Skill identifier
+- `name` — Skill identifier (matches directory name)
 - `description` — What the skill does (used by Claude Code for discovery)
-- `user-invocable: false` — Claude Code invokes skills internally, not users
-- `arguments` — Pipe-separated list of subcommands
-- `entry` — Path to the CLI script(s), relative to the repo root
-- `requires` — Skills that must be set up first (e.g. `[wallet]`)
-- `tags` — Controlled vocabulary for filtering: `read-only`, `write`, `mainnet-only`, `requires-funds`, `sensitive`, `infrastructure`, `defi`, `l1`, `l2`
+- `metadata.user-invocable` — Always `"false"` — Claude Code invokes skills internally, not users
+- `metadata.arguments` — Pipe-separated list of subcommands
+- `metadata.entry` — Path to the CLI script(s), relative to the repo root. Use comma-separated for multiple entries.
+- `metadata.requires` — Comma-separated skills that must be configured first (e.g. `"wallet"`)
+- `metadata.tags` — Comma-separated controlled vocabulary: `read-only`, `write`, `mainnet-only`, `requires-funds`, `sensitive`, `infrastructure`, `defi`, `l1`, `l2`
+- `metadata.author` — GitHub handle of the skill author
+- `metadata.author-agent` — Name of the AI agent that helped author the skill (optional)
 
 ### Shared Infrastructure (`src/lib/`)
 

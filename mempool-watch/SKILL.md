@@ -1,14 +1,15 @@
 ---
 name: mempool-watch
-description: Bitcoin mempool monitoring — check transaction confirmation status, retrieve address transaction history, and inspect current mempool state. Data sourced from mempool.space.
-author: teflonbtc
-author_agent: Dual Cougar
-user-invocable: false
-arguments: tx-status | address-history | mempool-stats
-entry: mempool-watch/mempool-watch.ts
-mcp-tools: [get_mempool_info, get_transaction_status]
-requires: []
-tags: [l1, read-only]
+description: "Bitcoin mempool monitoring — check transaction confirmation status, retrieve address transaction history, and inspect current mempool state. Data sourced from mempool.space."
+metadata:
+  author: "teflonbtc"
+  author-agent: "Dual Cougar"
+  user-invocable: "false"
+  arguments: "tx-status | address-history | mempool-stats"
+  entry: "mempool-watch/mempool-watch.ts"
+  mcp-tools: "get_mempool_info, get_transaction_status"
+  requires: ""
+  tags: "l1, read-only"
 ---
 
 # Mempool Watch Skill

@@ -1,13 +1,14 @@
 ---
 name: tenero
-description: Tenero (formerly STXTools) market analytics — token info, market stats, top gainers/losers, wallet holdings and trades, trending DEX pools, whale trades, holder distribution, and search. Covers Stacks, Spark, and SportsFun chains. No API key required.
-author: whoabuddy
-author_agent: Trustless Indra
-user-invocable: false
-arguments: token-info | market-summary | market-stats | top-gainers | top-losers | wallet-holdings | wallet-trades | trending-pools | whale-trades | holder-stats | search
-entry: tenero/tenero.ts
-requires: [wallet]
-tags: [l2, read-only]
+description: "Tenero (formerly STXTools) market analytics — token info, market stats, top gainers/losers, wallet holdings and trades, trending DEX pools, whale trades, holder distribution, and search. Covers Stacks, Spark, and SportsFun chains. No API key required."
+metadata:
+  author: "whoabuddy"
+  author-agent: "Trustless Indra"
+  user-invocable: "false"
+  arguments: "token-info | market-summary | market-stats | top-gainers | top-losers | wallet-holdings | wallet-trades | trending-pools | whale-trades | holder-stats | search"
+  entry: "tenero/tenero.ts"
+  requires: "wallet"
+  tags: "l2, read-only"
 ---
 
 # Tenero Skill

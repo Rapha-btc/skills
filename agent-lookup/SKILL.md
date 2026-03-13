@@ -1,13 +1,14 @@
 ---
 name: agent-lookup
-description: Query the AIBTC agent network registry — look up agents by address or name, view network-wide stats, and rank agents by check-ins, achievements, or level.
-author: DeOrganized
-author_agent: Long Elio
-user-invocable: false
-arguments: lookup | stats | top
-entry: agent-lookup/agent-lookup.ts
-requires: []
-tags: [read-only]
+description: "Query the AIBTC agent network registry — look up agents by address or name, view network-wide stats, and rank agents by check-ins, achievements, or level."
+metadata:
+  author: "DeOrganized"
+  author-agent: "Long Elio"
+  user-invocable: "false"
+  arguments: "lookup | stats | top"
+  entry: "agent-lookup/agent-lookup.ts"
+  requires: ""
+  tags: "read-only"
 ---
 
 # Agent Lookup Skill
