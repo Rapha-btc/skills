@@ -26,16 +26,22 @@ const VALID_CATEGORIES = ["ordinals", "services", "agents", "wanted"] as const;
 // ---------------------------------------------------------------------------
 
 /**
- * Build a signing message for write operations.
- * Pattern: SIGNAL|{action}|{context}|{btcAddress}|{timestamp}
+ * Build v2 API auth headers for write operations.
+ * Message format: '{METHOD} /api{path}:{unix_seconds}'
  */
-function buildSigningMessage(
-  action: string,
-  context: string,
-  btcAddress: string,
-  timestamp: number
-): string {
-  return `SIGNAL|${action}|${context}|${btcAddress}|${timestamp}`;
+async function buildAuthHeaders(
+  method: string,
+  path: string
+): Promise<Record<string, string>> {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const message = `${method} /api${path}:${timestamp}`;
+  const { signature, signer } = await signMessage(message);
+  return {
+    "X-BTC-Address": signer,
+    "X-BTC-Signature": signature,
+    "X-BTC-Timestamp": String(timestamp),
+    "Content-Type": "application/json",
+  };
 }
 
 /**
@@ -113,33 +119,6 @@ async function apiGet(
 
   if (!res.ok) {
     throw new Error(`API error ${res.status} from GET ${path}: ${text}`);
-  }
-
-  return data;
-}
-
-/**
- * Make a PATCH request to the aibtc.news API.
- */
-async function apiPatch(path: string, body: unknown): Promise<unknown> {
-  const url = `${NEWS_API_BASE}${path}`;
-
-  const res = await fetch(url, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  const text = await res.text();
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = { raw: text };
-  }
-
-  if (!res.ok) {
-    throw new Error(`API error ${res.status} from PATCH ${path}: ${text}`);
   }
 
   return data;
@@ -396,12 +375,8 @@ program
   )
   .requiredOption("--id <id>", "Signal ID to correct")
   .requiredOption("--content <text>", "Correction text (max 500 characters)")
-  .requiredOption(
-    "--btc-address <address>",
-    "Your BTC address (must match original author)"
-  )
   .action(
-    async (opts: { id: string; content: string; btcAddress: string }) => {
+    async (opts: { id: string; content: string }) => {
       try {
         if (opts.content.length > 500) {
           throw new Error(
@@ -409,21 +384,28 @@ program
           );
         }
 
-        const timestamp = Date.now();
-        const message = buildSigningMessage(
-          "correct",
-          opts.id,
-          opts.btcAddress,
-          timestamp
-        );
-        const { signature } = await signMessage(message);
+        // v2: auth via headers, only content in body
+        const path = `/signals/${opts.id}`;
+        const headers = await buildAuthHeaders("PATCH", path);
 
-        const data = await apiPatch(`/signals/${opts.id}`, {
-          btcAddress: opts.btcAddress,
-          content: opts.content,
-          signature,
-          timestamp,
+        const url = `${NEWS_API_BASE}${path}`;
+        const res = await fetch(url, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ content: opts.content }),
         });
+
+        const text = await res.text();
+        let data: unknown;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+
+        if (!res.ok) {
+          throw new Error(`API error ${res.status}: ${text}`);
+        }
 
         printJson({
           success: true,
@@ -449,16 +431,11 @@ program
       "Requires BIP-322 signing. You must be the beat owner."
   )
   .requiredOption("--beat <slug>", "Beat slug to update")
-  .requiredOption(
-    "--btc-address <address>",
-    "Your BTC address (must own the beat)"
-  )
   .option("--description <text>", "New description (max 500 chars)")
   .option("--color <hex>", "New color (#RRGGBB format)")
   .action(
     async (opts: {
       beat: string;
-      btcAddress: string;
       description?: string;
       color?: string;
     }) => {
@@ -477,25 +454,32 @@ program
           throw new Error("Invalid color format (must be #RRGGBB)");
         }
 
-        const timestamp = Date.now();
-        const message = buildSigningMessage(
-          "update-beat",
-          opts.beat,
-          opts.btcAddress,
-          timestamp
-        );
-        const { signature } = await signMessage(message);
+        // v2: auth via headers, PATCH to /beats/{slug}
+        const path = `/beats/${opts.beat}`;
+        const headers = await buildAuthHeaders("PATCH", path);
 
-        const body: Record<string, unknown> = {
-          slug: opts.beat,
-          btcAddress: opts.btcAddress,
-          signature,
-          timestamp,
-        };
+        const body: Record<string, unknown> = {};
         if (opts.description) body.description = opts.description;
         if (opts.color) body.color = opts.color;
 
-        const data = await apiPatch("/beats", body);
+        const url = `${NEWS_API_BASE}${path}`;
+        const res = await fetch(url, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(body),
+        });
+
+        const text = await res.text();
+        let data: unknown;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+
+        if (!res.ok) {
+          throw new Error(`API error ${res.status}: ${text}`);
+        }
 
         printJson({
           success: true,
@@ -553,34 +537,21 @@ program
       "Requires BIP-322 signing."
   )
   .requiredOption("--date <date>", "ISO date (YYYY-MM-DD)")
-  .requiredOption(
-    "--btc-address <address>",
-    "Your BTC address (bc1q... or bc1p...)"
-  )
-  .action(async (opts: { date: string; btcAddress: string }) => {
+  .action(async (opts: { date: string }) => {
     try {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(opts.date)) {
         throw new Error("Date must be YYYY-MM-DD format");
       }
 
-      const timestamp = Date.now();
-      const message = buildSigningMessage(
-        "inscribe-brief",
-        opts.date,
-        opts.btcAddress,
-        timestamp
-      );
-      const { signature } = await signMessage(message);
+      // v2: auth via headers, empty body
+      const path = `/brief/${opts.date}/inscribe`;
+      const headers = await buildAuthHeaders("POST", path);
 
-      const url = `${NEWS_API_BASE}/brief/${opts.date}/inscribe`;
+      const url = `${NEWS_API_BASE}${path}`;
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          btcAddress: opts.btcAddress,
-          signature,
-          timestamp,
-        }),
+        headers,
+        body: JSON.stringify({}),
       });
 
       const text = await res.text();
@@ -601,32 +572,6 @@ program
         message: "Brief inscription recorded",
         date: opts.date,
         response: data,
-      });
-    } catch (error) {
-      handleError(error);
-    }
-  });
-
-// ---------------------------------------------------------------------------
-// get-inscription
-// ---------------------------------------------------------------------------
-
-program
-  .command("get-inscription")
-  .description("Check the inscription status of a brief.")
-  .requiredOption("--date <date>", "ISO date (YYYY-MM-DD)")
-  .action(async (opts: { date: string }) => {
-    try {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(opts.date)) {
-        throw new Error("Date must be YYYY-MM-DD format");
-      }
-
-      const data = await apiGet(`/brief/${opts.date}/inscription`);
-
-      printJson({
-        network: NETWORK,
-        date: opts.date,
-        inscription: data,
       });
     } catch (error) {
       handleError(error);

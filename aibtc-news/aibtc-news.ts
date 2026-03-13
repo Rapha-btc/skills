@@ -21,16 +21,22 @@ const NEWS_API_BASE = "https://aibtc.news/api";
 // ---------------------------------------------------------------------------
 
 /**
- * Build a signing message for write operations.
- * Pattern: SIGNAL|{action}|{context}|{btcAddress}|{timestamp}
+ * Build v2 API auth headers for write operations.
+ * Message format: '{METHOD} /api{path}:{unix_seconds}'
  */
-function buildSigningMessage(
-  action: string,
-  context: string,
-  btcAddress: string,
-  timestamp: number
-): string {
-  return `SIGNAL|${action}|${context}|${btcAddress}|${timestamp}`;
+async function buildAuthHeaders(
+  method: string,
+  path: string
+): Promise<Record<string, string>> {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const message = `${method} /api${path}:${timestamp}`;
+  const { signature, signer } = await signMessage(message);
+  return {
+    "X-BTC-Address": signer,
+    "X-BTC-Signature": signature,
+    "X-BTC-Timestamp": String(timestamp),
+    "Content-Type": "application/json",
+  };
 }
 
 /**
@@ -110,12 +116,16 @@ async function apiGet(
 /**
  * Make a POST request to the aibtc.news API.
  */
-async function apiPost(path: string, body: unknown): Promise<unknown> {
+async function apiPost(
+  path: string,
+  body: unknown,
+  authHeaders?: Record<string, string>
+): Promise<unknown> {
   const url = `${NEWS_API_BASE}${path}`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders ?? { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
@@ -214,10 +224,9 @@ program
       "Rate limit: 1 signal per agent per 4 hours. " +
       "Requires an unlocked wallet."
   )
-  .requiredOption("--beat-id <id>", "Beat ID to file the signal under")
+  .requiredOption("--beat-id <id>", "Beat slug to file the signal under")
   .requiredOption("--headline <text>", "Signal headline (max 120 characters)")
   .requiredOption("--content <text>", "Signal content (max 1000 characters)")
-  .requiredOption("--btc-address <address>", "Your Bitcoin address (bc1q... or bc1p...)")
   .option("--sources <json>", "JSON array of source URLs (up to 5)", "[]")
   .option("--tags <json>", "JSON array of tag strings (up to 10)", "[]")
   .action(
@@ -225,7 +234,6 @@ program
       beatId: string;
       headline: string;
       content: string;
-      btcAddress: string;
       sources: string;
       tags: string;
     }) => {
@@ -264,36 +272,25 @@ program
           throw new Error(`Too many tags: max 10, got ${tags.length}`);
         }
 
-        // Build and sign the message
-        const timestamp = Date.now();
-        const message = buildSigningMessage(
-          "file-signal",
-          opts.beatId,
-          opts.btcAddress,
-          timestamp
-        );
+        // v2: auth via headers, snake_case body
+        const headers = await buildAuthHeaders("POST", "/signals");
 
-        const { signature } = await signMessage(message);
-
-        // POST the signal
-        const body = {
-          beatId: opts.beatId,
-          headline: opts.headline,
+        const body: Record<string, unknown> = {
+          beat_slug: opts.beatId,
           content: opts.content,
-          sources,
-          tags,
-          btcAddress: opts.btcAddress,
-          signature,
-          timestamp,
         };
 
-        const data = await apiPost("/signals", body);
+        if (opts.headline) body.headline = opts.headline;
+        if (sources.length > 0) body.sources = sources;
+        if (tags.length > 0) body.tags = tags;
+
+        const data = await apiPost("/signals", body, headers);
 
         printJson({
           success: true,
           network: NETWORK,
           message: "Signal filed successfully",
-          beatId: opts.beatId,
+          beatSlug: opts.beatId,
           headline: opts.headline,
           contentLength: opts.content.length,
           sourcesCount: sources.length,
@@ -390,35 +387,30 @@ program
       "Claiming a beat establishes your agent as the correspondent for that topic. " +
       "Requires an unlocked wallet for BIP-322 signing."
   )
-  .requiredOption("--beat-id <id>", "Beat ID to claim")
-  .requiredOption("--btc-address <address>", "Your Bitcoin address (bc1q... or bc1p...)")
-  .action(async (opts: { beatId: string; btcAddress: string }) => {
+  .requiredOption("--beat-id <id>", "Beat slug to claim")
+  .option("--name <name>", "Display name for the beat")
+  .option("--description <text>", "Beat description")
+  .option("--color <hex>", "Beat color (#RRGGBB)")
+  .action(async (opts: { beatId: string; name?: string; description?: string; color?: string }) => {
     try {
-      const timestamp = Date.now();
-      const message = buildSigningMessage(
-        "claim-beat",
-        opts.beatId,
-        opts.btcAddress,
-        timestamp
-      );
+      // v2: auth via headers, snake_case body
+      const headers = await buildAuthHeaders("POST", "/beats");
 
-      const { signature } = await signMessage(message);
-
-      const body = {
-        beatId: opts.beatId,
-        btcAddress: opts.btcAddress,
-        signature,
-        timestamp,
+      const body: Record<string, unknown> = {
+        beat_slug: opts.beatId,
       };
 
-      const data = await apiPost("/beats", body);
+      if (opts.name) body.name = opts.name;
+      if (opts.description) body.description = opts.description;
+      if (opts.color) body.color = opts.color;
+
+      const data = await apiPost("/beats", body, headers);
 
       printJson({
         success: true,
         network: NETWORK,
         message: "Beat claimed successfully",
-        beatId: opts.beatId,
-        btcAddress: opts.btcAddress,
+        beatSlug: opts.beatId,
         response: data,
       });
     } catch (error) {
@@ -437,39 +429,31 @@ program
       "Requires a correspondent score >= 50. " +
       "Requires an unlocked wallet for BIP-322 signing."
   )
-  .requiredOption("--btc-address <address>", "Your Bitcoin address (bc1q... or bc1p...)")
   .option(
     "--date <date>",
     "ISO date string for the brief (default: today, e.g., 2026-02-26)"
   )
-  .action(async (opts: { btcAddress: string; date?: string }) => {
+  .option("--beat <slug>", "Optional beat slug to compile for")
+  .action(async (opts: { date?: string; beat?: string }) => {
     try {
       const date = opts.date || new Date().toISOString().split("T")[0];
-      const timestamp = Date.now();
-      const message = buildSigningMessage(
-        "compile-brief",
-        date,
-        opts.btcAddress,
-        timestamp
-      );
 
-      const { signature } = await signMessage(message);
+      // v2: auth via headers, snake_case body
+      const headers = await buildAuthHeaders("POST", "/brief");
 
-      const body = {
+      const body: Record<string, unknown> = {
         date,
-        btcAddress: opts.btcAddress,
-        signature,
-        timestamp,
       };
 
-      const data = await apiPost("/brief", body);
+      if (opts.beat) body.beat_slug = opts.beat;
+
+      const data = await apiPost("/brief", body, headers);
 
       printJson({
         success: true,
         network: NETWORK,
         message: "Brief compilation triggered",
         date,
-        btcAddress: opts.btcAddress,
         response: data,
       });
     } catch (error) {
