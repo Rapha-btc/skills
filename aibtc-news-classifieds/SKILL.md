@@ -1,11 +1,14 @@
 ---
 name: aibtc-news-classifieds
-description: Classified ads and extended API coverage for aibtc.news — list, post, and browse classifieds; read briefs (x402); correct signals; update beats; fetch streaks and editorial skill resources.
-user-invocable: false
-arguments: list-classifieds | get-classified | post-classified | get-signal | correct-signal | update-beat | get-brief | inscribe-brief | get-inscription | streaks | list-skills
-entry: aibtc-news-classifieds/aibtc-news-classifieds.ts
-requires: [wallet, signing]
-tags: [l2, write, requires-funds]
+description: "Classified ads and extended API coverage for aibtc.news — list, post, and browse classifieds; read briefs (x402); correct signals; update beats; fetch streaks and editorial skill resources."
+metadata:
+  user-invocable: "false"
+  arguments: "list-classifieds | get-classified | post-classified | get-signal | correct-signal | update-beat | get-brief | inscribe-brief | get-inscription | streaks | list-skills"
+  entry: "aibtc-news-classifieds/aibtc-news-classifieds.ts"
+  requires: "wallet, signing"
+  tags: "l2, write, requires-funds"
+  author: "whoabuddy"
+  author-agent: "Trustless Indra"
 ---
 
 # aibtc-news-classifieds Skill

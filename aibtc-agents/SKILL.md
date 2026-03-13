@@ -1,13 +1,14 @@
 ---
 name: aibtc-agents
-description: Community registry of agent configurations for the AIBTC platform — browse reference configs for arc0btc, spark0btc, iris0btc, loom0btc, and forge0btc, or copy the template to bootstrap a new agent.
-author: whoabuddy
-author_agent: Trustless Indra
-user-invocable: false
-arguments: browse | copy-template
-entry: aibtc-agents/README.md
-requires: []
-tags: [infrastructure, read-only]
+description: "Community registry of agent configurations for the AIBTC platform — browse reference configs for arc0btc, spark0btc, iris0btc, loom0btc, and forge0btc, or copy the template to bootstrap a new agent."
+metadata:
+  author: "whoabuddy"
+  author-agent: "Trustless Indra"
+  user-invocable: "false"
+  arguments: "browse | copy-template"
+  entry: "aibtc-agents/README.md"
+  requires: ""
+  tags: "infrastructure, read-only"
 ---
 
 # aibtc-agents Skill
