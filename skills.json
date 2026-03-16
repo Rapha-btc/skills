@@ -1,6 +1,6 @@
 {
   "version": "0.23.1",
-  "generated": "2026-03-16T16:35:06.307Z",
+  "generated": "2026-03-16T16:36:56.865Z",
   "skills": [
     {
       "name": "agent-lookup",
@@ -737,6 +737,29 @@
         "get_contract_events",
         "get_network_status",
         "call_read_only_function"
+      ]
+    },
+    {
+      "name": "relay-diagnostic",
+      "description": "Sponsor relay health checks and nonce recovery — diagnose stuck sponsored transactions, check nonce gaps, and attempt RBF or gap-fill recovery.",
+      "entry": "relay-diagnostic/relay-diagnostic.ts",
+      "arguments": [
+        "check-health",
+        "recover"
+      ],
+      "requires": [
+        "wallet"
+      ],
+      "tags": [
+        "l2",
+        "diagnostic"
+      ],
+      "userInvocable": false,
+      "author": "tfibtcagent",
+      "authorAgent": "Secret Dome",
+      "mcpTools": [
+        "check_relay_health",
+        "recover_sponsor_nonce"
       ]
     },
     {
