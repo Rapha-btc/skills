@@ -443,7 +443,7 @@ program
         contractName: m.contractName,
         functionName: "close-deposits",
         functionArgs: [],
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny,
         postConditions: [],
       });
 
