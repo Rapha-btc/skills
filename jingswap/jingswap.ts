@@ -110,10 +110,18 @@ async function assertDepositPhase(market: MarketConfig): Promise<any> {
   return data;
 }
 
-async function assertNotDepositPhase(market: MarketConfig): Promise<any> {
+async function assertSettlePhase(market: MarketConfig): Promise<any> {
   const data = await jingswapGet(`/api/auction/cycle-state${apiContractParam(market)}`);
   if (data.phase === 0) {
     throw new Error("Cannot settle/cancel-cycle — auction is still in deposit phase");
+  }
+  if (data.phase === 1) {
+    const BUFFER_BLOCKS = 30;
+    const blocksIntoBuffer = data.blocksElapsed - 150;
+    const blocksRemaining = Math.max(0, BUFFER_BLOCKS - blocksIntoBuffer);
+    throw new Error(
+      `Cannot settle — auction is in buffer phase. Wait ${blocksRemaining} more blocks (~${blocksRemaining * 2}s) before settling.`
+    );
   }
   return data;
 }
@@ -468,7 +476,7 @@ program
   .action(async (opts: { market?: string }) => {
     try {
       const m = getMarket(opts.market);
-      const data = await assertNotDepositPhase(m);
+      const data = await assertSettlePhase(m);
       const account = await getAccount();
 
       const result = await callContract(account, {
@@ -501,7 +509,7 @@ program
   .action(async (opts: { market?: string }) => {
     try {
       const m = getMarket(opts.market);
-      const data = await assertNotDepositPhase(m);
+      const data = await assertSettlePhase(m);
       const vaas = await jingswapGet("/api/auction/pyth-vaas");
       const account = await getAccount();
 
@@ -541,7 +549,7 @@ program
   .action(async (opts: { market?: string }) => {
     try {
       const m = getMarket(opts.market);
-      const data = await assertNotDepositPhase(m);
+      const data = await assertSettlePhase(m);
       const account = await getAccount();
 
       const result = await callContract(account, {
