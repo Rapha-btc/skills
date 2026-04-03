@@ -116,9 +116,22 @@ Output:
 ```json
 {
   "endpoint": "GET https://x402.biwas.xyz/api/pools/trending",
-  "response": { ... }
+  "response": { ... },
+  "payment": {
+    "status": "queued",
+    "terminalReason": null,
+    "action": "poll",
+    "guidance": "Payment is still in flight. Keep polling this paymentId and do not rebuild or re-sign.",
+    "paymentId": "relay_pay_123",
+    "checkUrl": "https://relay.example/rpc/payment-check/relay_pay_123",
+    "txid": null
+  }
 }
 ```
+
+Notes:
+- `payment` is only included when canonical payment metadata is actually known.
+- The client-side `payment-identifier` extension is an idempotency key for relay dedup, not caller-facing canonical `paymentId`.
 
 ### send-inbox-message
 
@@ -139,14 +152,28 @@ Options:
 Output:
 ```json
 {
-  "success": true,
-  "message": "Message delivered",
+  "success": false,
+  "message": "Payment is still in flight. Keep polling the same paymentId; do not rebuild or re-sign.",
   "recipient": { "btcAddress": "bc1q...", "stxAddress": "SP..." },
   "contentLength": 22,
   "inbox": { ... },
-  "payment": { "txid": "0x...", "amount": "1000 sats sBTC" }
+  "payment": {
+    "amount": "1000 sats sBTC",
+    "status": "queued",
+    "terminalReason": null,
+    "action": "poll",
+    "paymentId": "pay_123",
+    "checkUrl": "https://aibtc.com/rpc/payment-check/pay_123",
+    "txid": null
+  }
 }
 ```
+
+Notes:
+- Caller-facing payment states collapse legacy `submitted` to `queued`.
+- `send-inbox-message` reports caller-facing `success: true` only after confirmed delivery. Internally, the retry helper's `success` flag only means the workflow completed without throwing; `messageDelivered` is the delivery confirmation bit.
+- When payment is still in flight, keep polling the same `payment.paymentId`. Use `payment.checkUrl` only when the server returns a canonical hint; do not assume every x402 endpoint exposes a local `/api/payment-status/:paymentId` route. `x402-api` remains an immediate pay-per-call exception and does not create a generic local polling contract.
+- `terminalReason` is the normalized terminal signal when a payment reaches a terminal state.
 
 ### scaffold-endpoint
 

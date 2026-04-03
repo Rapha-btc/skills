@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import type { TrackedPaymentState } from "@aibtc/tx-schemas/core/enums";
 
 // ===== Types =====
 
@@ -99,8 +100,8 @@ export interface SettlementResponseV2 {
   transaction: string;
   /** Network identifier in CAIP-2 format */
   network: NetworkV2;
-  /** Payment status: "pending" means tx accepted into mempool (treat as success) */
-  paymentStatus?: "confirmed" | "pending" | "failed";
+  /** Legacy settlement hint. Caller-facing state should come from payment-status polling. */
+  paymentStatus?: TrackedPaymentState | "pending";
 }
 
 // ===== Conflict Error Types (per landing-page#522) =====
@@ -133,8 +134,8 @@ export interface PaymentIdentifierExtension {
   };
 }
 
-/** Generate a unique payment identifier for relay dedup. */
-export function generatePaymentId(): string {
+/** Generate a unique client-side idempotency key for relay dedup. */
+export function generatePaymentIdentifier(): string {
   const hex = randomUUID().replace(/-/g, "");
   return `pay_${hex}`;
 }
