@@ -1,6 +1,6 @@
 {
   "version": "0.40.0",
-  "generated": "2026-04-30T07:14:26.482Z",
+  "generated": "2026-04-30T09:01:28.548Z",
   "skills": [
     {
       "name": "agent-lookup",
@@ -1291,6 +1291,51 @@
       "userInvocable": false,
       "author": "teflonmusk",
       "authorAgent": "Dual Cougar"
+    },
+    {
+      "name": "jingswap-v2",
+      "description": "Jingswap V2 limit-price auction — sbtc-stx markets with mandatory limit prices, 2-phase (no buffer), bundled close+settle. Markets: sbtc-stx-market (0% premium) and sbtc-stx-20bp-stx-premium (0.20% STX bonus).",
+      "entry": "jingswap-v2/jingswap-v2.ts",
+      "arguments": [
+        "cycle-state",
+        "user-deposit",
+        "clearing-preview",
+        "prices",
+        "deposit-stx",
+        "deposit-sbtc",
+        "set-stx-limit",
+        "set-sbtc-limit",
+        "cancel-stx",
+        "cancel-sbtc",
+        "close-and-settle",
+        "cancel-cycle"
+      ],
+      "requires": [
+        "wallet"
+      ],
+      "tags": [
+        "l2",
+        "write",
+        "requires-funds",
+        "defi"
+      ],
+      "userInvocable": false,
+      "author": "Rapha-btc",
+      "authorAgent": "Claude Code",
+      "mcpTools": [
+        "jingswap_v2_get_cycle_state",
+        "jingswap_v2_get_user_deposit",
+        "jingswap_v2_get_clearing_preview",
+        "jingswap_v2_get_prices",
+        "jingswap_v2_deposit_stx",
+        "jingswap_v2_deposit_sbtc",
+        "jingswap_v2_set_stx_limit",
+        "jingswap_v2_set_sbtc_limit",
+        "jingswap_v2_cancel_stx",
+        "jingswap_v2_cancel_sbtc",
+        "jingswap_v2_close_and_settle_with_refresh",
+        "jingswap_v2_cancel_cycle"
+      ]
     },
     {
       "name": "maximumsats-wot",
